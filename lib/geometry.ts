@@ -58,7 +58,7 @@ export function elBox(el: El, measure: Measure): Box {
     case "text": {
       const lines = textLines(el.text || " ");
       const w = Math.max(...lines.map((l) => measure(l || " ", el.fontSize)));
-      const braceW = el.system ? el.fontSize * 0.7 : 0;
+      const braceW = el.system ? el.fontSize * 0.8 : 0;
       b = { minX: el.x - braceW, minY: el.y, maxX: el.x + Math.max(w, el.fontSize), maxY: el.y + lines.length * el.fontSize * 1.3 };
       break;
     }

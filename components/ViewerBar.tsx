@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { exportPagePng, exportPdf } from "@/lib/export";
 import { useBoard } from "@/lib/store";
 import { useShare } from "@/lib/share/session";
 import { T } from "@/lib/strings";
@@ -15,6 +16,17 @@ export default function ViewerBar() {
   const current = useBoard((s) => s.current);
   const total = useBoard((s) => s.pages.length);
   const [now, setNow] = useState(() => Date.now());
+  const [menu, setMenu] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!menu) return;
+    const close = (e: PointerEvent) => {
+      if (!menuRef.current?.contains(e.target as Node)) setMenu(false);
+    };
+    window.addEventListener("pointerdown", close);
+    return () => window.removeEventListener("pointerdown", close);
+  }, [menu]);
 
   useEffect(() => {
     const t = setInterval(() => setNow(Date.now()), 5000);
@@ -52,6 +64,36 @@ export default function ViewerBar() {
             {T.page} <b>{current + 1}</b>/{total}
           </span>
         </span>
+      )}
+      {status === "live" && (
+        <div className="topbar-group" ref={menuRef}>
+          <button className="tb-text" onClick={() => setMenu((v) => !v)} aria-expanded={menu}>
+            {T.viewer.export}
+          </button>
+          {menu && (
+            <div className="menu" role="menu">
+              <button
+                role="menuitem"
+                onClick={() => {
+                  const s = useBoard.getState();
+                  exportPagePng(s.page(), s.current);
+                  setMenu(false);
+                }}
+              >
+                {T.exportPng}
+              </button>
+              <button
+                role="menuitem"
+                onClick={() => {
+                  void exportPdf(useBoard.getState().pages);
+                  setMenu(false);
+                }}
+              >
+                {T.exportPdf}
+              </button>
+            </div>
+          )}
+        </div>
       )}
       <button className={`tb-text follow-btn${follow ? " is-on" : ""}`} onClick={() => useShare.setState({ follow: !follow })} aria-pressed={follow}>
         {follow ? T.viewer.following : T.viewer.follow}

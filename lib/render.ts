@@ -1,6 +1,6 @@
 import type { Background, Camera, El, ImageEl, MatrixEl, Page, ShapeEl, StrokeEl, TextEl } from "./types";
 import { cachedStrokePath, strokePath } from "./ink";
-import { changedCells, formatCell, matrixLayout, type Measure } from "./matrix";
+import { changedCells, formatCell, formatText, matrixLayout, type Measure } from "./matrix";
 import { BOARD_BG, colorOf, fontFamily, HIGHLIGHT_FILL, modeOf } from "./theme";
 import { elBox, emptyBox, intersects, textLines, union } from "./geometry";
 import { viewportBox } from "./camera";
@@ -128,7 +128,7 @@ function drawText(ctx: CanvasRenderingContext2D, el: TextEl, bg: Background) {
   ctx.fillStyle = colorOf(el.color, bg);
   ctx.font = fontString(el.fontSize);
   ctx.textBaseline = "top";
-  textLines(el.text).forEach((line, i) => ctx.fillText(el.system ? formatCell(line) : line, el.x, el.y + i * el.fontSize * 1.3 + el.fontSize * 0.1));
+  textLines(el.text).forEach((line, i) => ctx.fillText(el.system ? formatCell(line) : formatText(line), el.x, el.y + i * el.fontSize * 1.3 + el.fontSize * 0.1));
   if (el.system && el.text.trim()) drawSystemBrace(ctx, el, bg, textLines(el.text).length);
 }
 
@@ -139,7 +139,7 @@ export function drawSystemBrace(ctx: CanvasRenderingContext2D, el: TextEl, bg: B
   const bottom = el.y + Math.max(1, lines) * fs * 1.3 - fs * 0.1;
   const mid = (top + bottom) / 2;
   const w = fs * 0.42; // width of the brace
-  const right = el.x - fs * 0.22; // where the arms end
+  const right = el.x - fs * 0.32; // where the arms end
   const spine = right - w * 0.55;
   const tip = right - w;
   const r = Math.min(w * 0.6, (bottom - top) / 6);

@@ -115,6 +115,7 @@ export const T = {
     notFound: "Este quadro não existe ou já não está partilhado.",
     unconfigured: "Este site não tem a partilha configurada.",
     follow: "Seguir o mentor",
+    export: "Exportar",
     following: "A seguir o mentor",
   },
 };

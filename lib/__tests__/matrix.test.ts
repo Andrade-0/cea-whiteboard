@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { changedCells, formatCell, matrixLayout, resize, systemToAugmented } from "../matrix";
+import { changedCells, formatCell, formatText, matrixLayout, resize, systemToAugmented } from "../matrix";
 import type { MatrixEl } from "../types";
 
 const base = (cells: string[][], extra: Partial<MatrixEl> = {}): MatrixEl => ({
@@ -36,6 +36,15 @@ describe("formatCell", () => {
     // plain numbers and powers are left alone
     expect(formatCell("12")).toBe("12");
     expect(formatCell("x^2 + 3")).toBe("x² + 3");
+    expect(formatCell("det2")).toBe("det2");
+    expect(formatCell("L2 -> L2 - 2L1")).toBe("L₂ → L₂ − 2L₁");
+  });
+  it("formats the Text tool lightly", () => {
+    expect(formatText("L2 <- L2 - 2L1")).toBe("L₂ ← L₂ - 2L₁");
+    expect(formatText("Troca L1 com L3, depois x1 = 2")).toBe("Troca L₁ com L₃, depois x₁ = 2");
+    // ordinary writing is left alone
+    expect(formatText("Sábado às 18h30, matriz 3x3, pré-requisito, Exercício 12")).toBe("Sábado às 18h30, matriz 3x3, pré-requisito, Exercício 12");
+    expect(formatText("E3 e A^-1")).toBe("E₃ e A⁻¹");
   });
 });
 

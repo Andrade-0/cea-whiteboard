@@ -8,14 +8,36 @@ const SUP: Record<string, string> = { "0": "⁰", "1": "¹", "2": "²", "3": "³
  * "1-k^2" → "1−k²", "2*x" → "2·x", "3x1 + x_2" → "3x₁ + x₂", "L2 - 2L1" → "L₂ − 2L₁".
  */
 export function formatCell(raw: string): string {
-  return raw
-    .trim()
-    .replace(/\^\(?(-?[0-9n]+)\)?/g, (_, e: string) => [...e].map((c) => SUP[c] ?? c).join(""))
-    // a letter followed by digits is an index: x1, X12, x_3, x_{10}
-    .replace(/(\p{L})_?\{?(\d+)\}?/gu, (_, l: string, d: string) => l + [...d].map((c) => SUB[c]).join(""))
+  return indices(arrows(raw.trim()))
     .replace(/\*/g, "·")
     .replace(/-/g, "−")
     .replace(/\s*\/\s*/g, "/");
+}
+
+const powers = (s: string) => s.replace(/\^\(?(-?[0-9n]+)\)?/g, (_, e: string) => [...e].map((c) => SUP[c] ?? c).join(""));
+const arrows = (s: string) => s.replace(/<->/g, "↔").replace(/->/g, "→").replace(/<-/g, "←");
+
+/**
+ * Powers, then indices: a single letter (not part of a word) followed by
+ * digits is an index — x1, X12, x_3, x_{10}, 2L1 — while "det2" stays as is.
+ */
+function indices(s: string): string {
+  return powers(s).replace(/(?<!\p{L})(\p{L})_?\{?(\d+)\}?/gu, (_, l: string, d: string) => l + [...d].map((c) => SUB[c]).join(""));
+}
+
+/**
+ * Light formatting for the Text tool: indices, powers and arrows only, so that
+ * ordinary writing (hyphens, times like 18h30, sizes like 3x3) is untouched.
+ */
+export function formatText(raw: string): string {
+  return raw
+    .split(/(\s+)/)
+    .map((tok) => {
+      const bare = tok.replace(/[.,;:!?)]+$/, "");
+      if (/^\d{1,2}h\d{2}$/i.test(bare) || /^\d+[xX×]\d+$/.test(bare)) return tok;
+      return indices(arrows(tok));
+    })
+    .join("");
 }
 
 /** Normalised value used to compare steps ("−1/2" and "-1 / 2" are equal). */
