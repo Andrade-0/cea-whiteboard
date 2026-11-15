@@ -12,6 +12,8 @@ import { buildPages, diffDoc, fullDoc, type RemoteDoc } from "./doc";
 import { onLiveOut, setRemoteLive, type LiveState } from "./live";
 import { LocalTransport } from "./local";
 import { firebaseConfigured } from "./firebase";
+import { recordVisit } from "./history";
+import { T } from "../strings";
 
 export type ShareStatus = "off" | "connecting" | "live" | "error" | "unconfigured";
 
@@ -242,6 +244,7 @@ export async function startViewing(boardId: string) {
     const curId = prev.pages[prev.current]?.id;
     const current = Math.max(0, pages.findIndex((p) => p.id === (useShare.getState().follow ? doc.meta?.pageId : curId)));
     useBoard.setState({ pages, current });
+    void recordVisit({ id: boardId, local, title: pages.find((p) => p.title)?.title ?? T.visited.untitled, pages: pages.length });
     lastMeta = doc.meta;
     if (useShare.getState().follow) followHost(lastMeta);
     useShare.setState({ status: "live", lastSeen: Date.now(), hostPage: Math.max(0, pages.findIndex((p) => p.id === doc.meta?.pageId)) });

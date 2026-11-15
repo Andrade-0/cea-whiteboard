@@ -117,6 +117,17 @@ export const T = {
     unconfigured: "A partilha precisa de um projecto Firebase (gratuito). Segue o guia PARTILHA.md e volta a compilar o site.",
     keepOpen: "Mantém este separador aberto enquanto apresentas.",
   },
+  visited: {
+    menu: "Quadros acompanhados",
+    title: "Quadros que acompanhaste",
+    intro: "Quadros partilhados que abriste neste browser. Clica para voltar a acompanhar.",
+    empty: "Ainda não abriste nenhum quadro partilhado neste browser. Quando abrires um link de partilha, ele aparece aqui.",
+    pages: (n: number) => (n === 1 ? "1 página" : `${n} páginas`),
+    today: "hoje",
+    here: "a ver agora",
+    forget: "Retirar da lista",
+    untitled: "Quadro sem título",
+  },
   viewer: {
     badge: "A acompanhar",
     live: "Ao vivo",
@@ -131,6 +142,7 @@ export const T = {
     allPages: "Ver todas as páginas",
     mentorHere: "mentor aqui",
     backToMentor: "Voltar ao mentor",
+    home: "Ir para o meu quadro",
     following: "A seguir o mentor",
   },
 };

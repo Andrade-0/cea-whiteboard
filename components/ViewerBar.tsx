@@ -6,6 +6,7 @@ import { useBoard } from "@/lib/store";
 import { browsePage, useShare } from "@/lib/share/session";
 import { T } from "@/lib/strings";
 import { useCompact } from "@/lib/useCompact";
+import { homeLink, useVisited } from "@/lib/share/history";
 import { IconClose, IconMenu } from "./icons";
 
 /** Top bar for people following a shared board (read-only). */
@@ -81,11 +82,11 @@ export default function ViewerBar() {
 
   return (
     <header className="topbar viewer-bar">
-      <div className="brand">
+      <a className="brand brand-link" href={homeLink()} title={T.viewer.home}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img className="brand-logo" src="isaf.png" alt="ISAF" />
         <span className="brand-name">{T.appName}</span>
-      </div>
+      </a>
       <span className={`viewer-status is-${status}${quiet ? " is-quiet" : ""}`}>
         {status === "live" && <i className="live-dot" aria-hidden />}
         {label}
@@ -172,6 +173,13 @@ export default function ViewerBar() {
               >
                 {T.exportPdf}
               </button>
+              <hr />
+              <button role="menuitem" onClick={() => (useVisited.setState({ open: true }), setMenu(false))}>
+                {T.visited.menu}
+              </button>
+              <a role="menuitem" className="menu-link" href={homeLink()}>
+                {T.viewer.home}
+              </a>
             </div>
           )}
         </div>

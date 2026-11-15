@@ -7,6 +7,7 @@ import { T } from "@/lib/strings";
 import { exportJson, exportPagePng, exportPdf } from "@/lib/export";
 import { parseBoardFile, type SavedBoard } from "@/lib/storage";
 import { appendPages, newBoard } from "@/lib/actions";
+import { useVisited } from "@/lib/share/history";
 import { contentBox } from "@/lib/render";
 import { fitBox } from "@/lib/camera";
 import { useCompact } from "@/lib/useCompact";
@@ -117,6 +118,9 @@ function FileActions({ done, openFile }: { done: () => void; openFile: () => voi
       </button>
       <button role="menuitem" onClick={openFile}>
         {T.importJson}
+      </button>
+      <button role="menuitem" onClick={() => (useVisited.setState({ open: true }), done())}>
+        {T.visited.menu}
       </button>
       <hr />
       <button

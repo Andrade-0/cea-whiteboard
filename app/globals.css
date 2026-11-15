@@ -1449,3 +1449,74 @@ input:focus-visible {
 .import-choice.is-primary {
   box-shadow: 3px 3px 0 var(--pink);
 }
+
+/* logo as a link (follower view) */
+.brand-link {
+  color: inherit;
+  text-decoration: none;
+}
+.brand-link:hover .brand-name {
+  color: var(--pink);
+}
+.menu .menu-link {
+  padding: 9px 10px;
+  font-size: 14px;
+  color: inherit;
+  text-decoration: none;
+}
+.menu .menu-link:hover {
+  background: var(--pink-soft);
+}
+
+/* visited boards */
+.visited-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 55vh;
+  overflow-y: auto;
+}
+.visited-list li {
+  display: flex;
+  align-items: stretch;
+  border: 1.5px solid var(--ink);
+  background: var(--paper);
+}
+.visited-list li.is-current {
+  box-shadow: 3px 3px 0 var(--pink);
+}
+.visited-open {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 12px;
+  color: inherit;
+  text-decoration: none;
+}
+.visited-open:hover {
+  background: var(--pink-soft);
+}
+.visited-open b {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.visited-open span {
+  font-size: 12.5px;
+  color: var(--ink-2);
+}
+.visited-forget {
+  width: 42px;
+  display: grid;
+  place-items: center;
+  border-left: 1px solid var(--line);
+}
+.visited-forget:hover {
+  background: #fff4f0;
+  color: #b42318;
+}

@@ -9,6 +9,7 @@ import { T } from "@/lib/strings";
 import { installEditTracking } from "@/lib/editing";
 import { startViewing } from "@/lib/share/session";
 import ViewerBar from "./ViewerBar";
+import VisitedDialog from "./VisitedDialog";
 import { isCompact } from "@/lib/useCompact";
 import Board, { isTyping } from "./Board";
 import Toolbar from "./Toolbar";
@@ -167,6 +168,7 @@ export default function App() {
         <main className="stage" ref={stageRef}>
           <Board />
         </main>
+        <VisitedDialog currentId={viewId} />
       </div>
     );
   }
@@ -189,6 +191,7 @@ export default function App() {
         </>
       )}
       <HelpDialog />
+      <VisitedDialog />
     </div>
   );
 }
