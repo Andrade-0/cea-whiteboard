@@ -5,7 +5,8 @@ import { useBoard } from "@/lib/store";
 import type { Background } from "@/lib/types";
 import { T } from "@/lib/strings";
 import { exportJson, exportPagePng, exportPdf } from "@/lib/export";
-import { parseBoardFile } from "@/lib/storage";
+import { parseBoardFile, type SavedBoard } from "@/lib/storage";
+import { appendPages, newBoard } from "@/lib/actions";
 import { contentBox } from "@/lib/render";
 import { fitBox } from "@/lib/camera";
 import { useCompact } from "@/lib/useCompact";
@@ -94,6 +95,16 @@ function ZoomControls() {
 function FileActions({ done, openFile }: { done: () => void; openFile: () => void }) {
   return (
     <>
+      <button
+        role="menuitem"
+        onClick={() => {
+          if (window.confirm(T.newBoardConfirm)) newBoard();
+          done();
+        }}
+      >
+        {T.newBoard}
+      </button>
+      <hr />
       <button role="menuitem" onClick={() => (exportPagePng(s().page(), s().current), done())}>
         {T.exportPng}
       </button>
@@ -130,6 +141,7 @@ export default function TopBar({ saveState }: { saveState: "idle" | "saving" | "
   const compact = useCompact();
   const [fileMenu, setFileMenu] = useState(false);
   const [mobileMenu, setMobileMenu] = useState(false);
+  const [pendingImport, setPendingImport] = useState<{ name: string; data: SavedBoard } | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const fileMenuRef = useRef<HTMLDivElement>(null);
   const mobileRef = useRef<HTMLDivElement>(null);
@@ -142,6 +154,40 @@ export default function TopBar({ saveState }: { saveState: "idle" | "saving" | "
   };
 
   const saveLabel = saveState === "saving" ? T.saving : saveState === "failed" ? T.saveFailed : saveState === "saved" ? T.saved : "";
+
+  const importDialog = pendingImport && (
+    <div className="help-backdrop" onPointerDown={() => setPendingImport(null)}>
+      <section className="help import-dialog" role="dialog" aria-label={T.importTitle} onPointerDown={(e) => e.stopPropagation()}>
+        <header>
+          <h2>{T.importTitle}</h2>
+          <button onClick={() => setPendingImport(null)} aria-label={T.cancel}>
+            <IconClose width={18} height={18} />
+          </button>
+        </header>
+        <p>{T.importInfo(pendingImport.name, pendingImport.data.pages.length)}</p>
+        <button
+          className="import-choice is-primary"
+          onClick={() => {
+            appendPages(pendingImport.data.pages);
+            setPendingImport(null);
+          }}
+        >
+          <b>{T.importAppend}</b>
+          <span>{T.importAppendHint}</span>
+        </button>
+        <button
+          className="import-choice"
+          onClick={() => {
+            s().load(pendingImport.data.pages, pendingImport.data.current);
+            setPendingImport(null);
+          }}
+        >
+          <b>{T.importReplace}</b>
+          <span>{T.importReplaceHint}</span>
+        </button>
+      </section>
+    </div>
+  );
 
   const fileInput = (
     <input
@@ -156,7 +202,10 @@ export default function TopBar({ saveState }: { saveState: "idle" | "saving" | "
         if (!f) return;
         const data = parseBoardFile(await f.text());
         if (!data) return window.alert(T.importFailed);
-        s().load(data.pages, data.current);
+        // an empty board is simply replaced; otherwise ask what to do
+        const empty = s().pages.every((p) => p.elements.length === 0);
+        if (empty) s().load(data.pages, data.current);
+        else setPendingImport({ name: f.name, data });
       }}
     />
   );
@@ -212,6 +261,7 @@ export default function TopBar({ saveState }: { saveState: "idle" | "saving" | "
             </div>
           )}
           {fileInput}
+          {importDialog}
         </div>
       </header>
     );
@@ -240,6 +290,7 @@ export default function TopBar({ saveState }: { saveState: "idle" | "saving" | "
           </div>
         )}
         {fileInput}
+        {importDialog}
       </div>
 
       <div className="topbar-group">

@@ -1,5 +1,5 @@
-import type { El, MatrixEl, ShapeEl, TextEl } from "./types";
-import { newId, useBoard } from "./store";
+import type { El, MatrixEl, Page, ShapeEl, TextEl } from "./types";
+import { newId, newPage, useBoard } from "./store";
 import { emptyCells, matrixLayout, systemToAugmented } from "./matrix";
 import { measure } from "./render";
 import { elBox, translateEl } from "./geometry";
@@ -103,6 +103,22 @@ export function cloneEls(els: El[], dx: number, dy: number): El[] {
   });
   // keep step links inside the copied group
   return out.map((e) => (e.type === "matrix" && e.prevId ? { ...e, prevId: idMap.get(e.prevId) } : e));
+}
+
+/**
+ * Adds pages from a saved board after the existing ones (ids are renewed so
+ * the same file can be imported twice) and opens the first imported page.
+ */
+export function appendPages(pages: Page[]) {
+  if (!pages.length) return;
+  const fresh = pages.map((p) => ({ ...p, id: newId(), elements: cloneEls(p.elements, 0, 0) }));
+  useBoard.setState((s) => ({ pages: [...s.pages, ...fresh], current: s.pages.length, selection: [], editing: null }));
+}
+
+/** Replaces everything with a single empty page (same background as now). */
+export function newBoard() {
+  const s = useBoard.getState();
+  s.load([newPage(s.page().bg)], 0);
 }
 
 export function duplicateSelection() {
