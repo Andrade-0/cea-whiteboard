@@ -1,0 +1,23 @@
+{
+  "rules": {
+    "owners": {
+      "$board": {
+        ".read": true,
+        ".write": "auth != null && (!data.exists() || data.val() === auth.uid)",
+        ".validate": "newData.isString() && newData.val() === auth.uid"
+      }
+    },
+    "boards": {
+      "$board": {
+        ".read": true,
+        ".write": "auth != null && root.child('owners/' + $board).val() === auth.uid",
+        "viewers": {
+          "$viewer": {
+            ".write": true,
+            ".validate": "newData.isBoolean()"
+          }
+        }
+      }
+    }
+  }
+}

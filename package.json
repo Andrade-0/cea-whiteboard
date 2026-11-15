@@ -1,0 +1,34 @@
+{
+  "name": "quadro-app",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "node scripts/serve.mjs",
+    "lint": "eslint",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "firebase": "^13.3.0",
+    "idb-keyval": "^6.2.1",
+    "jspdf": "^3.0.1",
+    "nanoid": "^5.1.5",
+    "next": "16.4.6",
+    "perfect-freehand": "^1.2.2",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "zustand": "^5.0.5"
+  },
+  "devDependencies": {
+    "@tailwindcss/turbopack": "4.3.3",
+    "@types/node": "^24",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "16.4.6",
+    "tailwindcss": "4.3.3",
+    "typescript": "^5",
+    "vitest": "^5.1.0"
+  }
+}
