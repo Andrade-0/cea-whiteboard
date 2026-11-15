@@ -75,7 +75,7 @@ export function createMinor(id: string, i: number, j: number) {
   if (!src || src.type !== "matrix") return;
   const n = squareOrder(src);
   if (!n || n < 2) return;
-  const cells = src.cells.filter((_, r) => r !== i).map((row) => row.slice(0, n).filter((_, c) => c !== j));
+  const cells = minorCells(src.cells, n, i, j);
   const raw = (src.cells[i][j] ?? "").trim() || "0";
   const element = /^[-−]/.test(raw) || /[+\-−]/.test(raw.slice(1)) ? `(${raw})` : raw;
   const sign = (i + j) % 2 === 0 ? "+" : "−";
@@ -101,6 +101,79 @@ export function createMinor(id: string, i: number, j: number) {
     minor,
   ]);
   useBoard.setState({ selection: [src.id], editing: null });
+}
+
+/** Minor of cell (i, j): the matrix without row i and column j. */
+export function minorCells(cells: string[][], n: number, i: number, j: number): string[][] {
+  return cells.filter((_, r) => r !== i).map((row) => row.slice(0, n).filter((_, c) => c !== j));
+}
+
+/**
+ * Structure of the cofactor matrix: "Cof(A) =" and a big bracket holding,
+ * at each position (i, j), the sign + / − followed by the minor of a_ij as a
+ * determinant filled with the matrix's numbers. Nothing is calculated.
+ * Every piece is an ordinary element (the minors can get diagonals, etc.);
+ * they come out selected together so they can be moved as one.
+ */
+export function createCofactorMatrix(id: string) {
+  const s = useBoard.getState();
+  const src = s.page().elements.find((e) => e.id === id);
+  if (!src || src.type !== "matrix" || src.aug !== null) return;
+  const n = squareOrder(src);
+  if (!n || n < 2 || n > 4) return;
+  const fs = Math.round(src.fontSize * (n === 4 ? 0.65 : n === 3 ? 0.8 : 1));
+
+  const minors: MatrixEl[][] = Array.from({ length: n }, (_, i) =>
+    Array.from({ length: n }, (_, j) => ({
+      ...makeMatrix(0, 0, n - 1, n - 1, false),
+      cells: minorCells(src.cells, n, i, j),
+      delim: "bar" as const,
+      label: (i + j) % 2 === 0 ? "+" : "−",
+      fontSize: fs,
+    })),
+  );
+  // room for Sarrus on 3×3 minors, so turning it on overlaps nothing
+  const widthOf = (m: MatrixEl) => matrixLayout({ ...m, sarrus: n === 4 ? "both" : undefined }, measure).width;
+  const colW = Array.from({ length: n }, (_, j) => Math.max(...minors.map((row) => widthOf(row[j]))));
+  const rowH = matrixLayout(minors[0][0], measure).height;
+  const gapX = fs * 1.1, gapY = fs * 0.9, pad = fs * 0.5;
+  const gridW = colW.reduce((a, b) => a + b, 0) + gapX * (n - 1);
+  const gridH = rowH * n + gapY * (n - 1);
+
+  const letter = src.label.match(/\p{Lu}/u)?.[0] ?? "A";
+  const labelText = `Cof(${letter}) =`;
+  const top = elBox(src, measure).maxY + src.fontSize * 1.8;
+  const labelFs = src.fontSize;
+  const label: TextEl = { id: newId(), type: "text", x: src.x, y: top + pad + gridH / 2 - labelFs * 0.65, text: labelText, color: "ink", fontSize: labelFs };
+
+  const left = src.x + measure(labelText, labelFs) + labelFs * 0.5; // big bracket
+  const x0 = left + pad * 1.6;
+  const y0 = top + pad;
+  let x = x0;
+  colW.forEach((w, j) => {
+    for (let i = 0; i < n; i++) {
+      minors[i][j].x = x;
+      minors[i][j].y = y0 + i * (rowH + gapY);
+    }
+    x += w + gapX;
+  });
+  const right = x0 + gridW + pad * 1.6;
+  const y1 = top, y2 = top + gridH + pad * 2;
+  const serif = Math.max(8, src.fontSize * 0.35);
+  const size = Math.max(2, src.fontSize * 0.07);
+  const line = (x1: number, ya: number, x2: number, yb: number): ShapeEl => ({ id: newId(), type: "shape", kind: "line", x1, y1: ya, x2, y2: yb, color: "ink", size });
+  const bracket = [
+    line(left, y1, left, y2),
+    line(left, y1, left + serif, y1),
+    line(left, y2, left + serif, y2),
+    line(right, y1, right, y2),
+    line(right - serif, y1, right, y1),
+    line(right - serif, y2, right, y2),
+  ];
+
+  const added: El[] = [label, ...bracket, ...minors.flat()];
+  s.change((els) => [...els, ...added]);
+  useBoard.setState({ selection: added.map((e) => e.id), editing: null });
 }
 
 /**

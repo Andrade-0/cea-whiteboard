@@ -5,8 +5,8 @@ import { useBoard } from "@/lib/store";
 import type { Delimiter, El, HighlightColor, MatrixEl, SarrusMode, TextEl } from "@/lib/types";
 import { elBox } from "@/lib/geometry";
 import { measure } from "@/lib/render";
-import { resize } from "@/lib/matrix";
-import { appendIdentity, createMinor, deleteSelection, duplicateSelection, nextStep, squareOrder, systemToMatrix, updateMatrix } from "@/lib/actions";
+import { resize, sarrusShape } from "@/lib/matrix";
+import { appendIdentity, createCofactorMatrix, createMinor, deleteSelection, duplicateSelection, nextStep, squareOrder, systemToMatrix, updateMatrix } from "@/lib/actions";
 import VerifyPanel from "./VerifyPanel";
 import { T } from "@/lib/strings";
 import { IconArrowRight, IconCopy, IconMinus, IconPlus, IconTrash } from "./icons";
@@ -111,6 +111,8 @@ function MatrixControls({ m, cell }: { m: MatrixEl; cell?: [number, number] }) {
   const rows = m.cells.length, cols = m.cells[0].length;
   const order = squareOrder(m);
   const square = order !== null;
+  // the diagonals follow the matrix: 2×2 rule, Sarrus on 3×3, none otherwise
+  const shape = sarrusShape(m);
   const ci = cell && cell[1] >= 0 ? cell : null;
 
   const toggle = (map: Record<string, HighlightColor>, key: string) => {
@@ -172,13 +174,16 @@ function MatrixControls({ m, cell }: { m: MatrixEl; cell?: [number, number] }) {
         {T.matrix.minor}
         {ci && square && ci[1] < order! ? ` a${toSub(ci[0] + 1)}${toSub(ci[1] + 1)}` : ""}
       </button>
+      <button className="ctx-btn ctx-text" disabled={!square || m.aug !== null || order! < 2 || order! > 4} title={T.matrix.cofactorsHint} onClick={() => createCofactorMatrix(m.id)}>
+        {T.matrix.cofactors}
+      </button>
       <button
         className={`ctx-btn ctx-text sarrus-btn${m.sarrus ? " is-on" : ""}`}
-        disabled={!square || m.aug !== null || (order !== 2 && order !== 3)}
-        title={T.matrix.sarrusHint}
+        disabled={!shape}
+        title={shape === "2x2" ? T.matrix.diag2Hint : shape === "3x3" ? T.matrix.sarrusHint : T.matrix.diagOff}
         onClick={() => updateMatrix(m.id, { sarrus: SARRUS_NEXT[m.sarrus ?? "off"] })}
       >
-        {T.matrix.sarrus}
+        {shape === "2x2" ? T.matrix.diag2 : T.matrix.sarrus}
         {m.sarrus ? ` ${T.matrix.sarrusModes[m.sarrus]}` : ""}
       </button>
       <button className={`ctx-btn ctx-text${verifyOpen ? " is-on" : ""}`} title={T.matrix.verifyHint} onClick={() => setVerifyOpen((v) => !v)}>

@@ -117,7 +117,7 @@ export function matrixLayout(m: MatrixEl, measure: Measure): MatrixLayout {
   // Sarrus on a 3×3: the first two columns are written again on the right
   const extX: number[] = [];
   let end = right;
-  if (sarrusApplies(m) && m.cells.length === 3) {
+  if (sarrusApplies(m) && sarrusShape(m) === "3x3") {
     let ex = right + pad;
     for (const j of [0, 1]) {
       extX.push(ex);
@@ -135,10 +135,23 @@ export function matrixLayout(m: MatrixEl, measure: Measure): MatrixLayout {
   return { labelW, left, cellsX, colW, colX, rowH, right, extX, opsX, opsW, width, height: rowH * m.cells.length, pad };
 }
 
-/** Sarrus lines make sense on square 2×2 and 3×3 matrices without an augmented part. */
+/**
+ * Where Sarrus lines fit (never on an augmented matrix):
+ * - "2x2": the two diagonals;
+ * - "3x3": the app writes the first two columns again on the right.
+ */
+export type SarrusShape = "2x2" | "3x3";
+export function sarrusShape(m: Pick<MatrixEl, "cells" | "aug">): SarrusShape | null {
+  if (m.aug !== null) return null;
+  const rows = m.cells.length, cols = m.cells[0]?.length ?? 0;
+  if (!m.cells.every((r) => r.length === cols)) return null;
+  if (rows === 2 && cols === 2) return "2x2";
+  if (rows === 3 && cols === 3) return "3x3";
+  return null;
+}
+
 export function sarrusApplies(m: Pick<MatrixEl, "cells" | "aug" | "sarrus">): boolean {
-  const n = m.cells.length;
-  return !!m.sarrus && m.aug === null && (n === 2 || n === 3) && m.cells.every((r) => r.length === n);
+  return !!m.sarrus && sarrusShape(m) !== null;
 }
 
 // ---------- linear system → augmented matrix ----------

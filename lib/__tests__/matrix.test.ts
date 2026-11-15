@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { changedCells, formatCell, formatText, matrixLayout, resize, systemToAugmented } from "../matrix";
+import { changedCells, formatCell, formatText, matrixLayout, resize, sarrusShape, systemToAugmented } from "../matrix";
 import type { MatrixEl } from "../types";
 
 const base = (cells: string[][], extra: Partial<MatrixEl> = {}): MatrixEl => ({
@@ -86,6 +86,11 @@ describe("matrixLayout", () => {
     expect(on.width).toBeGreaterThan(off.width + on.colW[0] + on.colW[1] - 1);
     expect(matrixLayout(base([["1", "2"], ["3", "4"]], { sarrus: "plus" }), measure).extX).toHaveLength(0);
     expect(matrixLayout({ ...m3, sarrus: "both", aug: 2 }, measure).extX).toHaveLength(0);
+  });
+  it("Sarrus only on 2×2 and 3×3 without an augmented bar", () => {
+    expect(sarrusShape(base([["1", "2"], ["3", "4"]]))).toBe("2x2");
+    expect(sarrusShape(base([["1", "2", "3", "4", "5"], ["1", "2", "3", "4", "5"], ["1", "2", "3", "4", "5"]]))).toBeNull();
+    expect(sarrusShape(base([["1", "2", "3", "4"], ["1", "2", "3", "4"], ["1", "2", "3", "4"]], { aug: 3 }))).toBeNull();
   });
   it("reserves room for the label and the operations", () => {
     const plain = matrixLayout(base([["1"]]), measure);

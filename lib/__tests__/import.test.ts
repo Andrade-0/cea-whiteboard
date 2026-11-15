@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { appendPages, newBoard } from "../actions";
+import { appendPages, minorCells, newBoard } from "../actions";
 import { newPage, useBoard } from "../store";
 import type { MatrixEl, Page } from "../types";
 
@@ -44,5 +44,14 @@ describe("importing a saved board", () => {
     const s = useBoard.getState();
     expect(s.pages).toHaveLength(1);
     expect(s.pages[0].elements).toHaveLength(0);
+  });
+});
+
+describe("cofactor matrix structure", () => {
+  it("minor of a_ij removes row i and column j", () => {
+    const A = [["1", "0", "2"], ["2", "1", "3"], ["0", "1", "1"]];
+    expect(minorCells(A, 3, 0, 0)).toEqual([["1", "3"], ["1", "1"]]);
+    expect(minorCells(A, 3, 1, 2)).toEqual([["1", "0"], ["0", "1"]]);
+    expect(minorCells(A, 3, 2, 1)).toEqual([["1", "2"], ["2", "3"]]);
   });
 });
