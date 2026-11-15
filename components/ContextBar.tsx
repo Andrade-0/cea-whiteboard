@@ -2,7 +2,7 @@
 
 import { useLayoutEffect, useRef, useState } from "react";
 import { useBoard } from "@/lib/store";
-import type { Delimiter, El, HighlightColor, MatrixEl, TextEl } from "@/lib/types";
+import type { Delimiter, El, HighlightColor, MatrixEl, SarrusMode, TextEl } from "@/lib/types";
 import { elBox } from "@/lib/geometry";
 import { measure } from "@/lib/render";
 import { resize } from "@/lib/matrix";
@@ -104,6 +104,10 @@ const HL: HighlightColor[] = ["pink", "blue", "green"];
 function MatrixControls({ m, cell }: { m: MatrixEl; cell?: [number, number] }) {
   const [hl, setHl] = useState<HighlightColor>("pink");
   const [verifyOpen, setVerifyOpen] = useState(false);
+  const prev = useBoard((s) => {
+    const p = m.prevId ? s.page().elements.find((e) => e.id === m.prevId) : undefined;
+    return p?.type === "matrix" ? p : undefined;
+  });
   const rows = m.cells.length, cols = m.cells[0].length;
   const order = squareOrder(m);
   const square = order !== null;
@@ -168,18 +172,28 @@ function MatrixControls({ m, cell }: { m: MatrixEl; cell?: [number, number] }) {
         {T.matrix.minor}
         {ci && square && ci[1] < order! ? ` a${toSub(ci[0] + 1)}${toSub(ci[1] + 1)}` : ""}
       </button>
+      <button
+        className={`ctx-btn ctx-text sarrus-btn${m.sarrus ? " is-on" : ""}`}
+        disabled={!square || m.aug !== null || (order !== 2 && order !== 3)}
+        title={T.matrix.sarrusHint}
+        onClick={() => updateMatrix(m.id, { sarrus: SARRUS_NEXT[m.sarrus ?? "off"] })}
+      >
+        {T.matrix.sarrus}
+        {m.sarrus ? ` ${T.matrix.sarrusModes[m.sarrus]}` : ""}
+      </button>
       <button className={`ctx-btn ctx-text${verifyOpen ? " is-on" : ""}`} title={T.matrix.verifyHint} onClick={() => setVerifyOpen((v) => !v)}>
         {T.matrix.verify}
       </button>
       <button className="ctx-btn ctx-text is-accent" title={T.matrix.nextStepHint + " (Ctrl+→)"} onClick={() => nextStep(m.id)}>
         {T.matrix.nextStep} <IconArrowRight width={16} height={16} />
       </button>
-      {verifyOpen && <VerifyPanel m={m} onClose={() => setVerifyOpen(false)} />}
+      {verifyOpen && <VerifyPanel m={m} prev={prev} onClose={() => setVerifyOpen(false)} />}
     </>
   );
 }
 
 const SUBS = "₀₁₂₃₄₅₆₇₈₉";
+const SARRUS_NEXT: Record<SarrusMode | "off", SarrusMode | undefined> = { off: "plus", plus: "minus", minus: "both", both: undefined };
 const toSub = (n: number) => String(n).replace(/\d/g, (d) => SUBS[Number(d)]);
 
 function Stepper({ label, value, onChange }: { label: string; value: number; onChange: (v: number) => void }) {

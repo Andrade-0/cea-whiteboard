@@ -1,6 +1,6 @@
 import type { Background, Camera, El, ImageEl, MatrixEl, Page, ShapeEl, StrokeEl, TextEl } from "./types";
 import { cachedStrokePath, strokePath } from "./ink";
-import { changedCells, formatCell, formatText, matrixLayout, type Measure } from "./matrix";
+import { changedCells, formatCell, formatText, matrixLayout, sarrusApplies, type MatrixLayout, type Measure } from "./matrix";
 import { BOARD_BG, colorOf, fontFamily, HIGHLIGHT_FILL, modeOf } from "./theme";
 import { elBox, emptyBox, intersects, textLines, union } from "./geometry";
 import { viewportBox } from "./camera";
@@ -253,6 +253,8 @@ export function drawMatrix(ctx: CanvasRenderingContext2D, m: MatrixEl, bg: Backg
     );
   }
 
+  if (sarrusApplies(m)) drawSarrus(ctx, m, L, bg, hideCells);
+
   // row operations
   if (m.showOps && !hideCells) {
     ctx.textAlign = "left";
@@ -263,6 +265,66 @@ export function drawMatrix(ctx: CanvasRenderingContext2D, m: MatrixEl, bg: Backg
     });
   }
   ctx.textAlign = "left";
+}
+
+/**
+ * Sarrus: on a 3×3 the first two columns are repeated (lighter) after the
+ * matrix; "+" diagonals go down-right in blue, "−" diagonals go up-right in
+ * pink. On a 2×2 only the two diagonals are drawn.
+ */
+function drawSarrus(ctx: CanvasRenderingContext2D, m: MatrixEl, L: MatrixLayout, bg: Background, hideCells: boolean) {
+  const n = m.cells.length;
+  const fs = m.fontSize;
+  const cx = (j: number) => m.x + (j < n ? L.colX[j] + L.colW[j] / 2 : L.extX[j - n] + L.colW[j - n] / 2);
+  const cy = (i: number) => m.y + i * L.rowH + L.rowH / 2;
+
+  if (n === 3 && !hideCells) {
+    ctx.save();
+    ctx.globalAlpha = 0.5;
+    ctx.fillStyle = colorOf("ink", bg);
+    ctx.font = fontString(fs);
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    for (let i = 0; i < 3; i++) for (const j of [0, 1]) ctx.fillText(formatCell(m.cells[i][j]), cx(3 + j), cy(i) + fs * 0.04);
+    ctx.restore();
+  }
+
+  const over = L.rowH * 0.32;
+  const line = (i1: number, j1: number, i2: number, j2: number, color: string, sign: string, signAtStart: boolean) => {
+    const x1 = cx(j1), y1 = cy(i1), x2 = cx(j2), y2 = cy(i2);
+    const len = Math.hypot(x2 - x1, y2 - y1);
+    const ux = (x2 - x1) / len, uy = (y2 - y1) / len;
+    ctx.beginPath();
+    ctx.moveTo(x1 - ux * over, y1 - uy * over);
+    ctx.lineTo(x2 + ux * over, y2 + uy * over);
+    ctx.stroke();
+    // small sign at the outer end of the diagonal
+    const sx = (signAtStart ? x1 - ux * over * 1.9 : x2 + ux * over * 1.9);
+    const sy = (signAtStart ? y1 - uy * over * 1.9 : y2 + uy * over * 1.9);
+    ctx.fillStyle = color;
+    ctx.fillText(sign, sx, sy);
+  };
+
+  const mode = m.sarrus!;
+  ctx.save();
+  ctx.lineWidth = Math.max(1.2, fs * 0.045);
+  ctx.lineCap = "round";
+  // light enough to keep the numbers readable underneath
+  ctx.globalAlpha = 0.7;
+  ctx.font = fontString(fs * 0.55, true);
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  const plus = colorOf("blue", bg), minus = colorOf("pink", bg);
+  const last = n - 1;
+  if (mode === "plus" || mode === "both") {
+    ctx.strokeStyle = plus;
+    for (let k = 0; k < (n === 3 ? 3 : 1); k++) line(0, k, last, k + last, plus, "+", false);
+  }
+  if (mode === "minus" || mode === "both") {
+    ctx.strokeStyle = minus;
+    for (let k = 0; k < (n === 3 ? 3 : 1); k++) line(last, k, 0, k + last, minus, "−", false);
+  }
+  ctx.restore();
 }
 
 export function drawEl(ctx: CanvasRenderingContext2D, el: El, bg: Background, byId: Map<string, El>, hideCellsOf?: string) {

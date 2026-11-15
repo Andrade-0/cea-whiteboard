@@ -130,12 +130,76 @@ export function nextStep(id: string) {
     colHl: {},
     cellHl: {},
     prevId: src.id,
+    sarrus: undefined,
     cells: src.cells.map((r) => r.slice()),
   };
   s.change((els) => [...els.map((e) => (e.id === id ? withOps : e)), arrow, copy]);
   // start by writing the operation of the 2nd row (the 1st is usually the pivot row)
   const opRow = src.cells.length > 1 ? 1 : 0;
   useBoard.setState({ selection: [src.id], editing: { id: src.id, cell: [opRow, -1] } });
+}
+
+/**
+ * Writes a whole solution on the board as a chain of "Próximo passo"
+ * matrices: the operations go next to each matrix and an arrow leads to the
+ * result. Three matrices per line, then the chain continues below.
+ * Everything is one undo step.
+ */
+export function writeSteps(id: string, steps: { labels: string[]; cells: string[][] }[]) {
+  const s = useBoard.getState();
+  const origin = s.page().elements.find((e) => e.id === id);
+  if (!origin || origin.type !== "matrix" || !steps.length) return;
+  const fs = origin.fontSize;
+  const added: El[] = [];
+  const replaced = new Map<string, MatrixEl>();
+  let cur: MatrixEl = origin;
+  let inRow = 1;
+  let rowBottom = elBox(origin, measure).maxY;
+  for (const step of steps) {
+    const withOps: MatrixEl = { ...cur, showOps: true, ops: cur.cells.map((_, i) => step.labels[i] ?? "") };
+    if (cur.id === origin.id) replaced.set(cur.id, withOps);
+    else added[added.length - 1] = withOps;
+    const L = matrixLayout(withOps, measure);
+    const next: MatrixEl = {
+      ...origin,
+      id: newId(),
+      label: "",
+      ops: step.cells.map(() => ""),
+      showOps: false,
+      rowHl: {},
+      colHl: {},
+      cellHl: {},
+      minorOf: undefined,
+      sarrus: undefined,
+      prevId: cur.id,
+      cells: step.cells,
+      x: 0,
+      y: cur.y,
+    };
+    const NL = matrixLayout(next, measure);
+    let arrow: ShapeEl;
+    if (inRow < 3) {
+      const cy = cur.y + L.height / 2;
+      const ax1 = cur.x + L.width + fs * 0.3, ax2 = ax1 + fs * 1.5;
+      arrow = { id: newId(), type: "shape", kind: "arrow", x1: ax1, y1: cy, x2: ax2, y2: cy, color: "pink", size: Math.max(2.5, fs * 0.09) };
+      next.x = ax2 + fs * 0.6;
+      next.y = cy - NL.height / 2;
+      inRow++;
+    } else {
+      // continue on a new line, starting under the first matrix
+      const y = rowBottom + fs * 1.6;
+      const ax1 = origin.x, ax2 = origin.x + fs * 1.5;
+      arrow = { id: newId(), type: "shape", kind: "arrow", x1: ax1, y1: y + NL.height / 2, x2: ax2, y2: y + NL.height / 2, color: "pink", size: Math.max(2.5, fs * 0.09) };
+      next.x = ax2 + fs * 0.6;
+      next.y = y;
+      inRow = 1;
+    }
+    rowBottom = Math.max(rowBottom, next.y + NL.height);
+    added.push(arrow, next);
+    cur = next;
+  }
+  s.change((els) => [...els.map((e) => replaced.get(e.id) ?? e), ...added]);
+  useBoard.setState({ selection: [cur.id], editing: null });
 }
 
 export function systemToMatrix(textId: string): boolean {

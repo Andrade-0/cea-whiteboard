@@ -38,6 +38,18 @@ export class Frac {
   isZero() {
     return this.n === B0;
   }
+  isInt() {
+    return this.d === B1;
+  }
+  isNeg() {
+    return this.n < B0;
+  }
+  abs() {
+    return this.n < B0 ? this.neg() : this;
+  }
+  eq(o: Frac) {
+    return this.n === o.n && this.d === o.d;
+  }
   /** "−3", "1/2", "−7/4" (with a real minus sign) */
   toString() {
     const sign = this.n < B0 ? "−" : "";
@@ -46,7 +58,7 @@ export class Frac {
   }
 }
 
-function gcd(a: bigint, b: bigint): bigint {
+export function gcd(a: bigint, b: bigint): bigint {
   while (b) [a, b] = [b, a % b];
   return a;
 }

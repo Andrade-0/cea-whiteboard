@@ -81,6 +81,8 @@ export interface MatrixLayout {
   colX: number[];
   rowH: number;
   right: number; // right delimiter x
+  /** Sarrus (3×3): x of the two repeated columns drawn after the matrix */
+  extX: number[];
   opsX: number;
   opsW: number;
   width: number;
@@ -112,14 +114,31 @@ export function matrixLayout(m: MatrixEl, measure: Measure): MatrixLayout {
     x += w;
   });
   const right = x + pad;
-  const opsX = right + fs * 0.5;
+  // Sarrus on a 3×3: the first two columns are written again on the right
+  const extX: number[] = [];
+  let end = right;
+  if (sarrusApplies(m) && m.cells.length === 3) {
+    let ex = right + pad;
+    for (const j of [0, 1]) {
+      extX.push(ex);
+      ex += colW[j];
+    }
+    end = ex;
+  }
+  const opsX = end + fs * 0.5;
   let opsW = 0;
   if (m.showOps) {
     opsW = fs * 4.2;
     for (const o of m.ops) opsW = Math.max(opsW, measure(formatCell(o), fs * 0.7, true) + fs * 0.4);
   }
-  const width = m.showOps ? opsX + opsW : right;
-  return { labelW, left, cellsX, colW, colX, rowH, right, opsX, opsW, width, height: rowH * m.cells.length, pad };
+  const width = m.showOps ? opsX + opsW : end;
+  return { labelW, left, cellsX, colW, colX, rowH, right, extX, opsX, opsW, width, height: rowH * m.cells.length, pad };
+}
+
+/** Sarrus lines make sense on square 2×2 and 3×3 matrices without an augmented part. */
+export function sarrusApplies(m: Pick<MatrixEl, "cells" | "aug" | "sarrus">): boolean {
+  const n = m.cells.length;
+  return !!m.sarrus && m.aug === null && (n === 2 || n === 3) && m.cells.every((r) => r.length === n);
 }
 
 // ---------- linear system → augmented matrix ----------

@@ -42,6 +42,7 @@ export interface ShapeEl extends BaseEl {
 
 export type Delimiter = "bracket" | "paren" | "bar" | "none";
 export type HighlightColor = "pink" | "blue" | "green";
+export type SarrusMode = "plus" | "minus" | "both";
 
 export interface MatrixEl extends BaseEl {
   type: "matrix";
@@ -63,6 +64,8 @@ export interface MatrixEl extends BaseEl {
   prevId?: string;
   /** Laplace: this matrix is a minor of another one */
   minorOf?: string;
+  /** Sarrus / 2×2 rule diagonals drawn over the determinant */
+  sarrus?: SarrusMode;
 }
 
 export interface TextEl extends BaseEl {

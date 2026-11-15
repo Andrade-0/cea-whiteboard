@@ -78,6 +78,15 @@ describe("matrixLayout", () => {
     expect(L.colW[1]).toBeGreaterThan(L.colW[0]);
     expect(L.height).toBeCloseTo(2 * 30 * 1.55);
   });
+  it("Sarrus on a 3×3 repeats two columns after the matrix (not on 2×2 or [A|b])", () => {
+    const m3 = base([["1", "0", "2"], ["2", "1", "3"], ["0", "1", "1"]], { delim: "bar" });
+    const off = matrixLayout(m3, measure);
+    const on = matrixLayout({ ...m3, sarrus: "both" }, measure);
+    expect(on.extX).toHaveLength(2);
+    expect(on.width).toBeGreaterThan(off.width + on.colW[0] + on.colW[1] - 1);
+    expect(matrixLayout(base([["1", "2"], ["3", "4"]], { sarrus: "plus" }), measure).extX).toHaveLength(0);
+    expect(matrixLayout({ ...m3, sarrus: "both", aug: 2 }, measure).extX).toHaveLength(0);
+  });
   it("reserves room for the label and the operations", () => {
     const plain = matrixLayout(base([["1"]]), measure);
     const full = matrixLayout(base([["1"]], { label: "A =", showOps: true, ops: ["L2 − 2L1"] }), measure);

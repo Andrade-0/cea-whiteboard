@@ -1621,3 +1621,116 @@ input:focus-visible {
   font-size: 11.5px;
   color: var(--muted);
 }
+
+/* verify panel: tabs, explanations, steps */
+.verify {
+  width: 360px;
+  max-height: min(70vh, 640px);
+}
+.verify-body {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  overflow-y: auto;
+  min-height: 0;
+}
+.verify-tabs,
+.verify-toggle {
+  display: flex;
+  gap: 2px;
+  border-bottom: 1px solid var(--line);
+}
+.verify-tabs button,
+.verify-toggle button {
+  padding: 5px 10px;
+  font-size: 13px;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+}
+.verify-tabs button.is-on,
+.verify-toggle button.is-on {
+  border-bottom-color: var(--blue-ink);
+  color: var(--blue-ink);
+  font-weight: 600;
+}
+.verify-toggle {
+  border-bottom: 0;
+}
+.verify-toggle button {
+  border: 1px solid var(--line);
+  margin: 0;
+}
+.verify-toggle button.is-on {
+  border-color: var(--blue-ink);
+  background: var(--blue-soft);
+}
+.verify-explain {
+  font-family: var(--font-math), sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  border-bottom: 1px dashed var(--line);
+  padding-bottom: 6px;
+}
+.verify-explain > div {
+  overflow-x: auto;
+}
+.verify-eq {
+  display: block;
+}
+.verify-grid span.is-aug {
+  border-left: 1px dashed var(--muted);
+  padding-left: 8px;
+}
+.verify-steps {
+  margin: 0;
+  padding-left: 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.verify-steps li {
+  font-size: 12px;
+  color: var(--muted);
+}
+.vs-ops {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  margin-bottom: 4px;
+  font-family: var(--font-math), sans-serif;
+  font-weight: 600;
+  font-size: 13.5px;
+  color: var(--blue-ink);
+}
+.verify-steps .verify-grid {
+  display: inline-grid;
+  color: var(--ink);
+}
+.verify-write {
+  margin-top: 4px;
+  padding: 9px 10px;
+  background: var(--pink);
+  color: #fff;
+  font-weight: 600;
+  font-size: 13.5px;
+}
+.verify-write:hover {
+  background: var(--pink-ink);
+}
+.verify-check {
+  margin: 0;
+  padding: 6px 8px;
+  font-size: 13px;
+  background: var(--blue-soft);
+  border-left: 3px solid var(--blue-ink);
+}
+.verify-check.is-ok {
+  background: #e3f5ec;
+  border-left-color: #1e8e5a;
+  color: #14603d;
+}
+.verify-check.is-wrong {
+  background: #fff4f0;
+  border-left-color: #d9381e;
+  color: #b42318;
+}
