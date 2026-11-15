@@ -6,6 +6,21 @@ import { elBox, translateEl } from "./geometry";
 
 export const DEFAULT_MATRIX_FONT = 30;
 
+export function makeMatrixFromPreset(x: number, y: number): MatrixEl {
+  const s = useBoard.getState();
+  const [rows, cols] = s.matrixSize;
+  const m = makeMatrix(x, y, rows, cols, s.matrixAug);
+  if (s.matrixFill === "identity") {
+    const n = Math.min(rows, cols);
+    m.cells = Array.from({ length: n }, (_, i) => Array.from({ length: n }, (_, j) => (i === j ? "1" : "0")));
+    m.ops = m.cells.map(() => "");
+    m.aug = null;
+  }
+  m.label = s.matrixLabel;
+  if (/^det\b|^Δ/.test(s.matrixLabel)) m.delim = "bar";
+  return m;
+}
+
 export function makeMatrix(x: number, y: number, rows: number, cols: number, aug: boolean): MatrixEl {
   return {
     id: newId(),
@@ -31,6 +46,61 @@ export function updateMatrix(id: string, patch: Partial<MatrixEl> | ((m: MatrixE
   const s = useBoard.getState();
   if (record) s.change(fn);
   else s.changeTransient(fn);
+}
+
+/** Square matrices only: its order, ignoring any augmented part. */
+export function squareOrder(m: MatrixEl): number | null {
+  const cols = m.aug ?? m.cells[0].length;
+  return m.cells.length === cols ? cols : null;
+}
+
+/** [A] → [A | I]: appends the identity matrix with the augmented bar. */
+export function appendIdentity(id: string) {
+  updateMatrix(id, (m) => {
+    const n = squareOrder(m);
+    if (!n) return {};
+    const cells = m.cells.map((row, i) => [...row.slice(0, n), ...Array.from({ length: n }, (_, j) => (i === j ? "1" : "0"))]);
+    return { cells, aug: n, ops: m.cells.map((_, i) => m.ops[i] ?? "") };
+  });
+}
+
+/**
+ * Laplace: creates the minor of cell (i, j) as a determinant, labelled with
+ * the cofactor sign and the element, e.g. "− 3 ·". Minors of the same matrix
+ * line up below it, left to right.
+ */
+export function createMinor(id: string, i: number, j: number) {
+  const s = useBoard.getState();
+  const src = s.page().elements.find((e) => e.id === id);
+  if (!src || src.type !== "matrix") return;
+  const n = squareOrder(src);
+  if (!n || n < 2) return;
+  const cells = src.cells.filter((_, r) => r !== i).map((row) => row.slice(0, n).filter((_, c) => c !== j));
+  const raw = (src.cells[i][j] ?? "").trim() || "0";
+  const element = /^[-−]/.test(raw) || /[+\-−]/.test(raw.slice(1)) ? `(${raw})` : raw;
+  const sign = (i + j) % 2 === 0 ? "+" : "−";
+  const fs = src.fontSize;
+  const srcBox = elBox(src, measure);
+  const siblings = s.page().elements.filter((e): e is MatrixEl => e.type === "matrix" && e.minorOf === src.id);
+  const minor: MatrixEl = {
+    ...makeMatrix(src.x, srcBox.maxY + fs * 1.4, n - 1, n - 1, false),
+    cells,
+    delim: "bar",
+    label: `${sign} ${element} ·`,
+    fontSize: fs,
+    minorOf: src.id,
+  };
+  if (siblings.length) {
+    const last = siblings.reduce((a, b) => (elBox(a, measure).maxX > elBox(b, measure).maxX ? a : b));
+    const lb = elBox(last, measure);
+    minor.x = lb.maxX + fs * 0.8;
+    minor.y = last.y;
+  }
+  s.change((els) => [
+    ...els.map((e) => (e.id === src.id && e.type === "matrix" ? { ...e, cellHl: { [`${i},${j}`]: "pink" as const }, rowHl: { [i]: "blue" as const }, colHl: { [j]: "blue" as const } } : e)),
+    minor,
+  ]);
+  useBoard.setState({ selection: [src.id], editing: null });
 }
 
 /**

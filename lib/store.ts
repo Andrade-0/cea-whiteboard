@@ -37,6 +37,9 @@ interface State {
   stabilizer: number;
   matrixSize: [number, number];
   matrixAug: boolean;
+  /** what the next matrix starts as: empty or identity, and its name */
+  matrixFill: "empty" | "identity";
+  matrixLabel: string;
   selection: string[];
   editing: Editing | null;
   presentation: boolean;
@@ -93,6 +96,8 @@ export const useBoard = create<State>((set, get) => ({
   stabilizer: 6,
   matrixSize: [3, 3],
   matrixAug: false,
+  matrixFill: "empty",
+  matrixLabel: "",
   selection: [],
   editing: null,
   presentation: false,

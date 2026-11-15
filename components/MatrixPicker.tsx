@@ -10,6 +10,8 @@ const MAX_R = 6, MAX_C = 8;
 export default function MatrixPicker() {
   const [rows, cols] = useBoard((s) => s.matrixSize);
   const aug = useBoard((s) => s.matrixAug);
+  const fill = useBoard((s) => s.matrixFill);
+  const label = useBoard((s) => s.matrixLabel);
   const [hover, setHover] = useState<[number, number] | null>(null);
   const shown = hover ?? [rows, cols];
 
@@ -31,11 +33,34 @@ export default function MatrixPicker() {
               key={k}
               className={`picker-cell${on ? " is-on" : ""}${isAugCol ? " is-aug" : ""}`}
               onMouseEnter={() => setHover([r, c])}
-              onClick={() => useBoard.setState({ matrixSize: [r, c] })}
+              onClick={() => useBoard.setState({ matrixSize: [r, c], matrixFill: "empty" })}
               aria-label={`${r} × ${c}`}
             />
           );
         })}
+      </div>
+      <div className="picker-presets">
+        <span>{T.matrix.presets}</span>
+        <button className={fill === "empty" ? "is-on" : ""} onClick={() => useBoard.setState({ matrixFill: "empty" })}>
+          {T.matrix.empty}
+        </button>
+        {[2, 3, 4].map((n) => (
+          <button
+            key={n}
+            className={fill === "identity" && rows === n && cols === n ? "is-on" : ""}
+            onClick={() => useBoard.setState({ matrixFill: "identity", matrixSize: [n, n], matrixAug: false })}
+          >
+            I{"₂₃₄"[n - 2]}
+          </button>
+        ))}
+      </div>
+      <div className="picker-presets">
+        <span>{T.matrix.label}</span>
+        {["", "A =", "det A =", "A⁻¹ ="].map((l) => (
+          <button key={l || "none"} className={label === l ? "is-on" : ""} onClick={() => useBoard.setState({ matrixLabel: l })}>
+            {l || T.matrix.noLabel}
+          </button>
+        ))}
       </div>
       <label className="picker-check">
         <input type="checkbox" checked={aug} onChange={(e) => useBoard.setState({ matrixAug: e.target.checked })} />

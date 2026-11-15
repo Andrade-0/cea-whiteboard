@@ -6,7 +6,8 @@ import type { Delimiter, El, HighlightColor, MatrixEl, TextEl } from "@/lib/type
 import { elBox } from "@/lib/geometry";
 import { measure } from "@/lib/render";
 import { resize } from "@/lib/matrix";
-import { deleteSelection, duplicateSelection, nextStep, systemToMatrix, updateMatrix } from "@/lib/actions";
+import { appendIdentity, createMinor, deleteSelection, duplicateSelection, nextStep, squareOrder, systemToMatrix, updateMatrix } from "@/lib/actions";
+import VerifyPanel from "./VerifyPanel";
 import { T } from "@/lib/strings";
 import { IconArrowRight, IconCopy, IconMinus, IconPlus, IconTrash } from "./icons";
 
@@ -20,12 +21,15 @@ export default function ContextBar({ width }: { width: number }) {
   const [error, setError] = useState<string | null>(null);
   const barRef = useRef<HTMLDivElement>(null);
   const [barW, setBarW] = useState(0);
+  const [barH, setBarH] = useState(40);
   // re-measure after every render: the bar's content changes with the selection
   // (the guard stops the update loop once the width is stable)
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useLayoutEffect(() => {
     const w = barRef.current?.offsetWidth ?? 0;
     if (w !== barW) setBarW(w);
+    const h = barRef.current?.offsetHeight ?? 40;
+    if (h !== barH) setBarH(h);
   });
 
   if (!selection.length || tool !== "select") return null;
@@ -40,14 +44,15 @@ export default function ContextBar({ width }: { width: number }) {
     maxX = Math.max(maxX, b.maxX);
   }
   const cx = (((minX + maxX) / 2 - cam.x) * cam.z);
-  const top = Math.max(8, (minY - cam.y) * cam.z - 64);
+  // sit just above the selection, however many lines the bar wraps to
+  const top = Math.max(8, (minY - cam.y) * cam.z - barH - 22);
   const single = picked.length === 1 ? picked[0] : null;
 
   return (
     <div
       ref={barRef}
       className="context-bar"
-      style={{ left: Math.min(Math.max(8 + barW / 2, cx), width - 8 - barW / 2), top }}
+      style={{ left: barW >= width - 16 ? width / 2 : Math.min(Math.max(8 + barW / 2, cx), width - 8 - barW / 2), top }}
       onPointerDown={(e) => {
         e.stopPropagation();
         // keep focus in the cell being edited
@@ -98,7 +103,10 @@ const HL: HighlightColor[] = ["pink", "blue", "green"];
 
 function MatrixControls({ m, cell }: { m: MatrixEl; cell?: [number, number] }) {
   const [hl, setHl] = useState<HighlightColor>("pink");
+  const [verifyOpen, setVerifyOpen] = useState(false);
   const rows = m.cells.length, cols = m.cells[0].length;
+  const order = squareOrder(m);
+  const square = order !== null;
   const ci = cell && cell[1] >= 0 ? cell : null;
 
   const toggle = (map: Record<string, HighlightColor>, key: string) => {
@@ -152,12 +160,27 @@ function MatrixControls({ m, cell }: { m: MatrixEl; cell?: [number, number] }) {
       <button className={`ctx-btn ctx-text${m.showOps ? " is-on" : ""}`} onClick={() => updateMatrix(m.id, { showOps: !m.showOps, ops: m.cells.map((_, i) => m.ops[i] ?? "") })}>
         {T.matrix.ops}
       </button>
+      <span className="ctx-sep" />
+      <button className="ctx-btn ctx-text" disabled={!square || m.aug !== null} title={T.matrix.identityHint} onClick={() => appendIdentity(m.id)}>
+        {T.matrix.identity}
+      </button>
+      <button className="ctx-btn ctx-text" disabled={!square || order! < 2 || !ci || ci[1] >= order!} title={T.matrix.minorHint} onClick={() => ci && createMinor(m.id, ci[0], ci[1])}>
+        {T.matrix.minor}
+        {ci && square && ci[1] < order! ? ` a${toSub(ci[0] + 1)}${toSub(ci[1] + 1)}` : ""}
+      </button>
+      <button className={`ctx-btn ctx-text${verifyOpen ? " is-on" : ""}`} title={T.matrix.verifyHint} onClick={() => setVerifyOpen((v) => !v)}>
+        {T.matrix.verify}
+      </button>
       <button className="ctx-btn ctx-text is-accent" title={T.matrix.nextStepHint + " (Ctrl+→)"} onClick={() => nextStep(m.id)}>
         {T.matrix.nextStep} <IconArrowRight width={16} height={16} />
       </button>
+      {verifyOpen && <VerifyPanel m={m} onClose={() => setVerifyOpen(false)} />}
     </>
   );
 }
+
+const SUBS = "₀₁₂₃₄₅₆₇₈₉";
+const toSub = (n: number) => String(n).replace(/\d/g, (d) => SUBS[Number(d)]);
 
 function Stepper({ label, value, onChange }: { label: string; value: number; onChange: (v: number) => void }) {
   return (

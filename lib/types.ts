@@ -61,6 +61,8 @@ export interface MatrixEl extends BaseEl {
   cellHl: Record<string, HighlightColor>;
   /** previous step: cells that differ from it are highlighted automatically */
   prevId?: string;
+  /** Laplace: this matrix is a minor of another one */
+  minorOf?: string;
 }
 
 export interface TextEl extends BaseEl {

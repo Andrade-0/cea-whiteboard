@@ -8,7 +8,7 @@ import { Stabilizer, catchUp, snapAngle, straighten } from "@/lib/ink";
 import { drawLiveStroke, drawScene, measure, setImageLoadListener, resetMeasureCache } from "@/lib/render";
 import { elBox, erasePartial, hitEl, intersects, resetBoxCache, translateEl } from "@/lib/geometry";
 import { colorOf } from "@/lib/theme";
-import { makeMatrix } from "@/lib/actions";
+import { makeMatrixFromPreset } from "@/lib/actions";
 import { matrixLayout } from "@/lib/matrix";
 import { emitLive, getRemoteLive, onRemoteLive, packPoints, unpackPoints } from "@/lib/share/live";
 import { useShare } from "@/lib/share/session";
@@ -398,8 +398,7 @@ export default function Board() {
         break;
       }
       case "matrix": {
-        const [rows, cols] = s.matrixSize;
-        const m = makeMatrix(x, y, rows, cols, s.matrixAug);
+        const m = makeMatrixFromPreset(x, y);
         const L = matrixLayout(m, measure);
         m.y = y - L.height / 2;
         s.change((els) => [...els, m]);
