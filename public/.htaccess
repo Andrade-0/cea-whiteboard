@@ -1,0 +1,13 @@
+# Quadro CEA on Apache hosts (e.g. InfinityFree): static export from `out/`
+ErrorDocument 404 /404.html
+DirectoryIndex index.html
+
+# Next.js route payloads are plain text
+AddType text/plain .txt
+
+# Always fetch the latest page after a new upload (assets have hashed names)
+<IfModule mod_headers.c>
+  <FilesMatch "\.html$">
+    Header set Cache-Control "no-cache"
+  </FilesMatch>
+</IfModule>

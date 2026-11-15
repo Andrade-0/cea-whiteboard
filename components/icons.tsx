@@ -112,6 +112,11 @@ export const IconShare = (p: P) => (
     <path d="M8.1 10.8 L15.4 6.7 M8.1 13.2 L15.4 17.3" />
   </Svg>
 );
+export const IconMenu = (p: P) => (
+  <Svg {...p}>
+    <path d="M4 7 H20 M4 12 H20 M4 17 H20" />
+  </Svg>
+);
 export const IconPlus = (p: P) => (
   <Svg {...p}>
     <path d="M12 5 V19 M5 12 H19" />

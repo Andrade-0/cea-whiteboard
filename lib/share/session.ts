@@ -4,6 +4,8 @@ import { get as idbGet, set as idbSet } from "idb-keyval";
 import { useBoard } from "../store";
 import type { Box, El, Page } from "../types";
 import { fitBox, viewportBox } from "../camera";
+import { elBox } from "../geometry";
+import { measure } from "../render";
 import type { ShareTransport } from "./transport";
 import { viewerLink } from "./transport";
 import { buildPages, diffDoc, fullDoc, type RemoteDoc } from "./doc";
@@ -22,6 +24,8 @@ interface ShareState {
   follow: boolean;
   /** viewer: last time anything arrived from the host */
   lastSeen: number;
+  /** viewer: index of the page the host is on */
+  hostPage: number;
   set: (p: Partial<ShareState>) => void;
 }
 
@@ -32,6 +36,7 @@ export const useShare = create<ShareState>((set) => ({
   viewers: 0,
   follow: true,
   lastSeen: 0,
+  hostPage: 0,
   set: (p) => set(p),
 }));
 
@@ -163,6 +168,27 @@ export function stopSharing() {
 
 // ------------------------------------------------------------------ viewer
 
+/** Viewer: open another page on their own (stops following the host). */
+export function browsePage(i: number) {
+  const s = useBoard.getState();
+  if (i < 0 || i >= s.pages.length) return;
+  useShare.setState({ follow: false });
+  useBoard.setState({ current: i });
+  // the first time a page is opened, show all of it
+  const page = useBoard.getState().pages[i];
+  const host = document.querySelector(".board-wrap") as HTMLElement | null;
+  if (!host || page.camera.x !== 0 || page.camera.y !== 0 || page.camera.z !== 1) return;
+  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+  for (const el of page.elements) {
+    const b = elBox(el, measure);
+    minX = Math.min(minX, b.minX);
+    minY = Math.min(minY, b.minY);
+    maxX = Math.max(maxX, b.maxX);
+    maxY = Math.max(maxY, b.maxY);
+  }
+  if (isFinite(minX)) useBoard.getState().setCamera(fitBox({ minX, minY, maxX, maxY }, host.clientWidth, host.clientHeight));
+}
+
 /** Applies the host's page and visible area to this viewer's camera. */
 export function followHost(meta: RemoteDoc["meta"] | undefined) {
   if (!meta) return;
@@ -170,7 +196,25 @@ export function followHost(meta: RemoteDoc["meta"] | undefined) {
   const idx = s.pages.findIndex((p) => p.id === meta.pageId);
   if (idx >= 0 && idx !== s.current) useBoard.setState({ current: idx });
   const host = document.querySelector(".board-wrap") as HTMLElement | null;
-  if (meta.view && host) useBoard.getState().setCamera(fitBox(meta.view, host.clientWidth, host.clientHeight, 0));
+  if (!meta.view || !host) return;
+  const w = host.clientWidth, h = host.clientHeight;
+  const hostAspect = (meta.view.maxX - meta.view.minX) / Math.max(1, meta.view.maxY - meta.view.minY);
+  // Same shape of screen: show exactly what the mentor sees.
+  // Much narrower screen (a phone): zoom to the content the mentor has in view, so it stays readable.
+  if (Math.abs(hostAspect - w / h) / hostAspect < 0.35) {
+    useBoard.getState().setCamera(fitBox(meta.view, w, h, 0));
+    return;
+  }
+  const page = useBoard.getState().page();
+  let box: Box | null = null;
+  for (const el of page.elements) {
+    const b = elBox(el, measure);
+    if (b.maxX < meta.view.minX || b.minX > meta.view.maxX || b.maxY < meta.view.minY || b.minY > meta.view.maxY) continue;
+    box = box
+      ? { minX: Math.min(box.minX, b.minX), minY: Math.min(box.minY, b.minY), maxX: Math.max(box.maxX, b.maxX), maxY: Math.max(box.maxY, b.maxY) }
+      : { ...b };
+  }
+  useBoard.getState().setCamera(fitBox(box ?? meta.view, w, h, box ? 16 : 0));
 }
 
 export async function startViewing(boardId: string) {
@@ -200,7 +244,7 @@ export async function startViewing(boardId: string) {
     useBoard.setState({ pages, current });
     lastMeta = doc.meta;
     if (useShare.getState().follow) followHost(lastMeta);
-    useShare.setState({ status: "live", lastSeen: Date.now() });
+    useShare.setState({ status: "live", lastSeen: Date.now(), hostPage: Math.max(0, pages.findIndex((p) => p.id === doc.meta?.pageId)) });
   });
   const offLive = transport.watch(boardId, "live", (v) => {
     setRemoteLive((v as LiveState | null) ?? null);

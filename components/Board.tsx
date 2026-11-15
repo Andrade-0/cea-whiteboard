@@ -44,6 +44,9 @@ export default function Board() {
   const laser = useRef<{ x: number; y: number; t: number }[]>([]);
   const size = useRef({ w: 0, h: 0, dpr: 1 });
   const spaceDown = useRef(false);
+  // touch screens: two fingers pinch-zoom and pan the board
+  const touches = useRef(new Map<number, { x: number; y: number }>());
+  const pinch = useRef<{ dist: number; mx: number; my: number } | null>(null);
   const frame = useRef({ staticDirty: true, liveDirty: true, raf: 0 });
 
   const tool = useBoard((s) => s.tool);
@@ -317,6 +320,22 @@ export default function Board() {
     const [x, y] = worldOf(e);
     const cam = s.page().camera;
 
+    if (e.pointerType === "touch") {
+      touches.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      if (touches.current.size === 2) {
+        // a second finger turns whatever started into a pinch (the half-drawn stroke is dropped)
+        const L0 = live.current;
+        if (L0.kind === "move" || L0.kind === "erase") s.commitFrom(L0.before);
+        live.current = { kind: "none" };
+        const [a, b] = [...touches.current.values()];
+        pinch.current = { dist: Math.hypot(a.x - b.x, a.y - b.y), mx: (a.x + b.x) / 2, my: (a.y + b.y) / 2 };
+        if (s.viewer) useShare.setState({ follow: false });
+        requestLive();
+        return;
+      }
+      if (touches.current.size > 2) return;
+    }
+
     if (s.viewer) useShare.setState({ follow: false });
     if (e.button === 1 || spaceDown.current || s.tool === "hand" || s.viewer) {
       live.current = { kind: "pan", lastX: e.clientX, lastY: e.clientY };
@@ -407,6 +426,22 @@ export default function Board() {
 
   const onPointerMove = (e: React.PointerEvent<HTMLCanvasElement>) => {
     const s = useBoard.getState();
+    if (e.pointerType === "touch" && touches.current.has(e.pointerId)) {
+      touches.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      if (pinch.current && touches.current.size >= 2) {
+        const [a, b] = [...touches.current.values()];
+        const dist = Math.hypot(a.x - b.x, a.y - b.y);
+        const mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2;
+        const r = liveRef.current!.getBoundingClientRect();
+        const p = pinch.current;
+        let cam = s.page().camera;
+        cam = panBy(cam, mx - p.mx, my - p.my);
+        if (p.dist > 0) cam = zoomAt(cam, mx - r.left, my - r.top, cam.z * (dist / p.dist));
+        s.setCamera(cam);
+        pinch.current = { dist, mx, my };
+        return;
+      }
+    }
     const L = live.current;
     if (s.tool === "laser" && (L.kind === "none" || L.kind === "pan") && !(L.kind === "pan")) {
       const [x, y] = worldOf(e);
@@ -482,6 +517,14 @@ export default function Board() {
 
   const onPointerUp = (e: React.PointerEvent<HTMLCanvasElement>) => {
     const s = useBoard.getState();
+    if (e.pointerType === "touch") {
+      touches.current.delete(e.pointerId);
+      if (pinch.current) {
+        // stay in pinch mode until every finger has left the screen
+        if (touches.current.size === 0) pinch.current = null;
+        return;
+      }
+    }
     const L = live.current;
     live.current = { kind: "none" };
     e.currentTarget.style.cursor = "";

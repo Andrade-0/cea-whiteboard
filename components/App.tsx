@@ -9,6 +9,7 @@ import { T } from "@/lib/strings";
 import { installEditTracking } from "@/lib/editing";
 import { startViewing } from "@/lib/share/session";
 import ViewerBar from "./ViewerBar";
+import { isCompact } from "@/lib/useCompact";
 import Board, { isTyping } from "./Board";
 import Toolbar from "./Toolbar";
 import StylePanel from "./StylePanel";
@@ -33,6 +34,9 @@ export default function App() {
   const [stageW, setStageW] = useState(1000);
 
   useEffect(() => installEditTracking(), []);
+  useEffect(() => {
+    if (isCompact()) useBoard.setState({ pagesOpen: false });
+  }, []);
 
   // a "?ver=<id>" link opens the read-only follower view of a shared board
   const [viewId] = useState(() => {
@@ -178,7 +182,12 @@ export default function App() {
         {presentation && <PresentBar />}
         <EmptyHint />
       </main>
-      {pagesOpen && !presentation && <PagesPanel />}
+      {pagesOpen && !presentation && (
+        <>
+          <div className="pages-backdrop" onPointerDown={() => useBoard.setState({ pagesOpen: false })} />
+          <PagesPanel />
+        </>
+      )}
       <HelpDialog />
     </div>
   );

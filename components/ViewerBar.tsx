@@ -3,8 +3,10 @@
 import { useEffect, useRef, useState } from "react";
 import { exportPagePng, exportPdf } from "@/lib/export";
 import { useBoard } from "@/lib/store";
-import { useShare } from "@/lib/share/session";
+import { browsePage, useShare } from "@/lib/share/session";
 import { T } from "@/lib/strings";
+import { useCompact } from "@/lib/useCompact";
+import { IconClose, IconMenu } from "./icons";
 
 /** Top bar for people following a shared board (read-only). */
 export default function ViewerBar() {
@@ -18,6 +20,38 @@ export default function ViewerBar() {
   const [now, setNow] = useState(() => Date.now());
   const [menu, setMenu] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  const [pagesMenu, setPagesMenu] = useState(false);
+  const pagesRef = useRef<HTMLDivElement>(null);
+  const hostPage = useShare((s) => s.hostPage);
+  const compact = useCompact();
+  const pages = useBoard((s) => s.pages);
+
+  useEffect(() => {
+    if (!pagesMenu) return;
+    const close = (e: PointerEvent) => {
+      if (!pagesRef.current?.contains(e.target as Node)) setPagesMenu(false);
+    };
+    window.addEventListener("pointerdown", close);
+    return () => window.removeEventListener("pointerdown", close);
+  }, [pagesMenu]);
+
+  // keyboard: PgUp/PgDn and the left/right arrows browse pages
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+      const cur = useBoard.getState().current;
+      if (e.key === "PageDown" || e.key === "ArrowRight") {
+        e.preventDefault();
+        browsePage(cur + 1);
+      }
+      if (e.key === "PageUp" || e.key === "ArrowLeft") {
+        e.preventDefault();
+        browsePage(cur - 1);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
 
   useEffect(() => {
     if (!menu) return;
@@ -58,20 +92,67 @@ export default function ViewerBar() {
       </span>
       <div className="topbar-spacer" />
       {status === "live" && (
-        <span className="viewer-page">
-          {title ? <b>{title}</b> : null}
-          <span className="page-indicator">
-            {T.page} <b>{current + 1}</b>/{total}
-          </span>
-        </span>
+        <div className="viewer-page" ref={pagesRef}>
+          {title && !compact ? <b className="viewer-title">{title}</b> : null}
+          <div className="page-nav">
+            <button className="tb-icon" onClick={() => browsePage(current - 1)} disabled={current === 0} aria-label={T.viewer.prevPage} title={`${T.viewer.prevPage} (PgUp)`}>
+              ‹
+            </button>
+            <button className="tb-text page-indicator page-picker" onClick={() => setPagesMenu((v) => !v)} aria-expanded={pagesMenu} title={T.viewer.allPages}>
+              {compact ? null : `${T.page} `}
+              <b>{current + 1}</b>/{total}
+            </button>
+            <button className="tb-icon" onClick={() => browsePage(current + 1)} disabled={current === total - 1} aria-label={T.viewer.nextPage} title={`${T.viewer.nextPage} (PgDn)`}>
+              ›
+            </button>
+          </div>
+          {pagesMenu && (
+            <div className="menu pages-menu" role="menu">
+              {pages.map((p, i) => (
+                <button
+                  key={p.id}
+                  role="menuitem"
+                  className={i === current ? "is-current" : ""}
+                  onClick={() => {
+                    browsePage(i);
+                    setPagesMenu(false);
+                  }}
+                >
+                  <span className="pm-num">{String(i + 1).padStart(2, "0")}</span>
+                  <span className="pm-title">{p.title || T.untitled}</span>
+                  {i === hostPage && <span className="pm-host">{T.viewer.mentorHere}</span>}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
       )}
       {status === "live" && (
         <div className="topbar-group" ref={menuRef}>
-          <button className="tb-text" onClick={() => setMenu((v) => !v)} aria-expanded={menu}>
-            {T.viewer.export}
+          <button
+            className={compact ? `tb-icon hamburger${menu ? " is-on" : ""}` : "tb-text"}
+            onClick={() => setMenu((v) => !v)}
+            aria-expanded={menu}
+            aria-label={compact ? T.menu : undefined}
+          >
+            {compact ? menu ? <IconClose /> : <IconMenu /> : T.viewer.export}
           </button>
           {menu && (
-            <div className="menu" role="menu">
+            <div className={`menu${compact ? " mobile-menu" : ""}`} role="menu">
+              {compact && title && <p className="mm-title">{title}</p>}
+              {compact && (
+                <button
+                  role="menuitem"
+                  className={follow ? "is-current" : ""}
+                  onClick={() => {
+                    useShare.setState({ follow: !follow });
+                    setMenu(false);
+                  }}
+                >
+                  {follow ? T.viewer.following : `${T.viewer.backToMentor} · ${T.page.toLowerCase()} ${hostPage + 1}`}
+                </button>
+              )}
+              {compact && <hr />}
               <button
                 role="menuitem"
                 onClick={() => {
@@ -95,9 +176,9 @@ export default function ViewerBar() {
           )}
         </div>
       )}
-      <button className={`tb-text follow-btn${follow ? " is-on" : ""}`} onClick={() => useShare.setState({ follow: !follow })} aria-pressed={follow}>
-        {follow ? T.viewer.following : T.viewer.follow}
-      </button>
+      {!compact && <button className={`tb-text follow-btn${follow ? " is-on" : ""}`} onClick={() => useShare.setState({ follow: !follow })} aria-pressed={follow}>
+        {follow ? T.viewer.following : `${T.viewer.backToMentor} · ${T.page.toLowerCase()} ${hostPage + 1}`}
+      </button>}
     </header>
   );
 }

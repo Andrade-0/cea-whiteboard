@@ -8,6 +8,7 @@ import { fitBox } from "@/lib/camera";
 import { T } from "@/lib/strings";
 import { IconCopy, IconDown, IconPlus, IconTrash, IconUp } from "./icons";
 import PageTitle from "./PageTitle";
+import { isCompact } from "@/lib/useCompact";
 
 const TW = 168, TH = 104;
 
@@ -44,7 +45,12 @@ export default function PagesPanel() {
       <ol className="pages-list">
         {pages.map((p, i) => (
           <li key={p.id} className={i === current ? "is-on" : ""}>
-            <button className="page-thumb" onClick={() => goto(i)} aria-label={`${T.page} ${i + 1}${p.title ? ` · ${p.title}` : ""}`}>
+            <button
+              className="page-thumb"
+              onClick={() => {
+                goto(i);
+                if (isCompact()) useBoard.setState({ pagesOpen: false });
+              }} aria-label={`${T.page} ${i + 1}${p.title ? ` · ${p.title}` : ""}`}>
               <span className="page-num">{String(i + 1).padStart(2, "0")}</span>
               <Thumb page={p} />
             </button>
